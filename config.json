@@ -1,0 +1,81 @@
+{
+  "notify": {
+    "ntfy_topic": "akshay-deals-CHANGE-ME",
+    "ntfy_server": "https://ntfy.sh",
+    "telegram_bot_token": "",
+    "telegram_chat_id": "",
+    "desktop_notification": true
+  },
+
+  "settings": {
+    "compare_to": "lowest",
+    "min_drop_eur": 10,
+    "alert_on_any_drop": true,
+    "product_every_minutes": 30,
+    "amazon_every_minutes": 30,
+    "feed_every_minutes": 5,
+    "warn_after_failures": 3,
+    "amazon_warn_after_failures": 8,
+    "amazon_exclude": [
+      "hülle", "case", "cover", "schutzfolie", "panzerglas", "schutzglas", "displayschutz",
+      "generalüberholt", "renewed", "refurbished", "wiederaufbereitet", "gebraucht",
+      "ladegerät", "kabel", "halterung", "ständer", "tasche", "skin"
+    ]
+  },
+
+  "products": [
+    {"name": "iPhone 17 256GB",          "url": "https://geizhals.de/3587125", "min_plausible_price": 500},
+    {"name": "iPhone 17e 256GB",         "url": "https://geizhals.de/3740103", "min_plausible_price": 400},
+    {"name": "iPhone Air 256GB",         "url": "https://geizhals.de/3587183", "min_plausible_price": 500},
+    {"name": "iPhone 17 Pro 256GB",      "url": "https://geizhals.de/3587161", "min_plausible_price": 650},
+    {"name": "iPhone 17 Pro Max 256GB",  "url": "https://geizhals.de/3587165", "min_plausible_price": 700},
+    {"name": "iPhone 18 Pro 256GB",      "url": "https://geizhals.de/3936828", "min_plausible_price": 800},
+    {"name": "iPhone 18 Pro Max 256GB",  "url": "https://geizhals.de/3936839", "min_plausible_price": 900},
+    {"name": "iPhone Duo 256GB",         "url": "https://geizhals.de/3936869", "min_plausible_price": 1300},
+    {"name": "Pixel 11 256GB",           "url": "https://geizhals.de/3907844", "min_plausible_price": 400},
+    {"name": "Pixel 11 Pro 256GB",       "url": "https://geizhals.de/3907924", "min_plausible_price": 550},
+    {"name": "Pixel 11 Pro XL 256GB",    "url": "https://geizhals.de/3907922", "min_plausible_price": 600},
+    {"name": "Pixel 11 Pro Fold 256GB",  "url": "https://geizhals.de/3907967", "min_plausible_price": 850},
+    {"name": "PS5 Slim Digital Edition", "url": "https://geizhals.de/3607040", "min_plausible_price": 250}
+  ],
+
+  "amazon_searches": [
+    {"name": "iPhone 17 256GB",         "query": "Apple iPhone 17 256 GB",        "include": ["iphone 17", "256gb"], "exclude": ["iphone 17 pro", "iphone 17e", "iphone air"], "min_plausible_price": 500},
+    {"name": "iPhone 17e 256GB",        "query": "Apple iPhone 17e 256 GB",       "include": ["iphone 17e", "256gb"], "min_plausible_price": 400},
+    {"name": "iPhone Air 256GB",        "query": "Apple iPhone Air 256 GB",       "include": ["iphone air", "256gb"], "min_plausible_price": 500},
+    {"name": "iPhone 17 Pro 256GB",     "query": "Apple iPhone 17 Pro 256 GB",    "include": ["iphone 17 pro", "256gb"], "exclude": ["pro max"], "min_plausible_price": 650},
+    {"name": "iPhone 17 Pro Max 256GB", "query": "Apple iPhone 17 Pro Max 256 GB","include": ["iphone 17 pro max", "256gb"], "min_plausible_price": 700},
+    {"name": "iPhone 18 Pro 256GB",     "query": "Apple iPhone 18 Pro 256 GB",    "include": ["iphone 18 pro", "256gb"], "exclude": ["pro max"], "min_plausible_price": 800},
+    {"name": "iPhone 18 Pro Max 256GB", "query": "Apple iPhone 18 Pro Max 256 GB","include": ["iphone 18 pro max", "256gb"], "min_plausible_price": 900},
+    {"name": "iPhone Duo 256GB",        "query": "Apple iPhone Duo 256 GB",       "include": ["iphone duo", "256gb"], "min_plausible_price": 1300},
+    {"name": "Pixel 11 256GB",          "query": "Google Pixel 11 256GB",         "include": ["pixel 11", "256gb"], "exclude": ["pixel 11 pro"], "min_plausible_price": 400},
+    {"name": "Pixel 11 Pro 256GB",      "query": "Google Pixel 11 Pro 256GB",     "include": ["pixel 11 pro", "256gb"], "exclude": ["pro xl", "pro fold"], "min_plausible_price": 550},
+    {"name": "Pixel 11 Pro XL 256GB",   "query": "Google Pixel 11 Pro XL 256GB",  "include": ["pixel 11 pro xl", "256gb"], "min_plausible_price": 600},
+    {"name": "Pixel 11 Pro Fold 256GB", "query": "Google Pixel 11 Pro Fold 256GB","include": ["pixel 11 pro fold", "256gb"], "min_plausible_price": 850},
+    {"name": "PS5 Digital Edition",     "query": "PlayStation 5 Digital Edition", "include": ["playstation 5|playstation5|ps5", "digital"], "exclude": ["ps5 pro", "playstation 5 pro", "playstation5 pro"], "min_plausible_price": 250}
+  ],
+
+  "deal_feeds": [
+    {
+      "name": "mydealz new deals",
+      "urls": [
+        "https://www.mydealz.de/rss/new",
+        "https://www.mydealz.de/rss/alle",
+        "http://feeds.feedburner.com/myDealZ"
+      ],
+      "exclude": [
+        "hülle", "case", "cover", "panzerglas", "schutzfolie", "displayschutz", "ladegerät", "kabel",
+        "halterung", "monitorarm", "vertrag", "tarif", "allnet", "gigakombi", "magentamobil",
+        "o2 mobile", "o2 blue", "congstar", "klarmobil", "freenet", "mtl", "monatlich", "/monat",
+        "generalüberholt", "refurbished", "gebraucht"
+      ],
+      "watches": [
+        {"name": "Curved monitor", "include": ["curved|gebogen|gewölbt|ultrawide|uwqhd|3440x1440|5120x1440|odyssey g"], "exclude": ["fernseher"], "min_price": 80},
+        {"name": "PS5 Digital",    "include": ["ps5|playstation 5|playstation5", "digital"], "exclude": ["ps5 pro", "playstation 5 pro", "code", "psn", "guthaben"], "min_price": 250},
+        {"name": "iPhone 17 / Air","include": ["iphone 17|iphone air"], "min_price": 300},
+        {"name": "iPhone 18 / Duo","include": ["iphone 18|iphone duo"], "min_price": 300},
+        {"name": "Pixel 11",       "include": ["pixel 11"], "min_price": 300}
+      ]
+    }
+  ]
+}
