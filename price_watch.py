@@ -171,7 +171,7 @@ def _offer_prices(offers):
     return out
 
 
-def prices_from_json_ld(page):
+def prices_from_json_ld(page, product_name=None):
     blocks = []
     for raw in LD_RE.findall(page):
         raw = raw.strip()
@@ -184,10 +184,14 @@ def prices_from_json_ld(page):
     for data in blocks:                       # the first Product = the main product
         for node in _walk(data):
             if "Product" in _types(node) and node.get("offers"):
+                if product_name and str(node.get("name", "")).strip().lower() != product_name.lower():
+                    continue
                 prices = _offer_prices(node["offers"])
                 if prices:
                     return prices
     prices = []
+    if product_name:
+        return prices
     for data in blocks:
         for node in _walk(data):
             if any(t in ("Offer", "AggregateOffer") for t in _types(node)):
@@ -209,7 +213,106 @@ AMAZON_PAGE_PATTERNS = [
 ]
 
 
-def extract_price(page, url="", custom_regex=None, min_plausible=0):
+def parse_geizhals_offers(page):
+    """[{price, shop, via, link}, ...] from a geizhals product page, cheapest first."""
+    offers = []
+    for block in re.split(r'id="offer-index-\d+"', page)[1:]:
+        block = block[:25000]
+        pm = re.search(r"price:\s*'([\d.]+)'", block) or re.search(
+            r'class="gh_price">\s*€\s*([\d.,]+)', block)
+        if not pm:
+            continue
+        price = float(pm.group(1)) if "'" in pm.group(0) else parse_price(pm.group(1))
+        nm = (re.search(r'class="merchant__logo-caption">\s*(.*?)\s*</div>', block, re.S)
+              or re.search(r'data-merchant-name="([^"]+)"', block))
+        lm = re.search(r'href="(https://geizhals\.[a-z]+/redir/[^"]+)"', block)
+        via = re.search(r'class="offer__merchant-link">\s*\(via\s*([^)<]+)\)', block)
+
+        def cell(cls):
+            i = block.find(cls)
+            if i < 0:
+                return ""
+            j = block.find("offer-cell", i + len(cls) + 5)
+            return strip_tags("<" + block[i:j if j > 0 else i + 3000])
+
+        delivery = cell("offer__delivery offer-cell")
+        if re.search(r"gratis|versandkostenfrei|kostenlos", delivery, re.I):
+            shipping = 0.0
+        else:
+            shipping = first_euro_price(delivery)
+        avail = re.split(r"\b(?:Kreditkarte|PayPal|Lastschrift|Vorkasse|Nachnahme|Rechnung|Klarna|"
+                         r"Sofort|Apple Pay|Google Pay|Amazon Pay|€|GRATIS)", delivery)[0]
+        avail = re.sub(r"^[^A-Za-zÄÖÜäöü]*", "", avail).strip(" .,")
+        for de, en in (("Auf Lager", "In stock"), ("Nicht lagernd", "Not in stock"),
+                       ("lagernd", "in stock"), ("Lieferzeit", "Delivery"),
+                       ("Werktage", "working days"), ("Werktag", "working day"),
+                       ("Tage", "days"), ("Lieferbar", "Available"), ("ab", "from")):
+            avail = re.sub(rf"\b{de}\b", en, avail)
+        details = cell("offer__details offer-cell")
+        shop_title = re.split(r"\s*(?:Preis vom:|\[Energie|Energieeffizienz)", details)[0].strip()
+        rating_txt = cell("offer__merchant-rating")
+        rm = re.search(r"Bewertung:\s*([\d.,]+)\s*von\s*5.*?([\d.]+)\s*Bewertungen", rating_txt)
+        rating = (f"{rm.group(1)}/5 ({rm.group(2)} reviews)" if rm
+                  else "no shop reviews yet" if "keine" in rating_txt else "")
+
+        offers.append({
+            "price": price,
+            "shop": strip_tags(nm.group(1)) if nm else "?",
+            "via": via.group(1).strip() if via else "",
+            "link": htmllib.unescape(lm.group(1)) if lm else "",
+            "shipping": shipping,
+            "availability": avail[:60],
+            "shop_title": shop_title[:160],
+            "rating": rating,
+        })
+    return sorted(offers, key=lambda o: o["price"])
+
+
+def official_store_info(page, url):
+    """Shop name, normal price and saving for official brand stores."""
+    info = {"shop": "", "regular": None, "saving": None}
+    if "store.google." in url:
+        info["shop"] = "Google Store"
+        m = re.search(r'data:\[\[0,0,\["EUR",(\d+(?:,\d+)?)\],\d+,\["EUR",(\d+)\],\["EUR",[\d,]+\],\["EUR",(\d+)\]', page)
+        if m and int(m.group(2)) > 0:
+            info["saving"] = float(m.group(2))
+            info["regular"] = float(m.group(3))
+    elif "apple.com" in url:
+        info["shop"] = "Apple Store"
+    elif "samsung.com" in url:
+        info["shop"] = "Samsung Shop"
+    return info
+
+
+def geizhals_product_name(page):
+    m = re.search(r"<title>\s*(.*?)\s+ab\s+(?:€|&euro;)", page, re.S)
+    return strip_tags(m.group(1)) if m else ""
+
+
+def shop_label(offer):
+    return offer["shop"] + (f" (via {offer['via']})" if offer.get("via") else "")
+
+
+def offer_details(o, product=""):
+    """Multi-line description of one offer, for the notification."""
+    lines = []
+    if product:
+        lines.append(f"📦 Product: {product}")
+    shop = f"🏪 Shop: {shop_label(o)}"
+    if o.get("rating"):
+        shop += f" · {o['rating']}" if o["rating"].startswith("no ") else f" · rating {o['rating']}"
+    lines.append(shop)
+    if o.get("shipping") is not None:
+        ship = "free shipping" if o["shipping"] == 0 else f"+ {eur(o['shipping'])} shipping"
+        lines.append(f"💶 Total: {eur(o['price'] + o['shipping'])} ({eur(o['price'])} {ship})")
+    if o.get("availability"):
+        lines.append(f"🚚 {o['availability']}")
+    if o.get("shop_title"):
+        lines.append(f"🔎 Shop's title: {o['shop_title']}")
+    return "\n".join(lines)
+
+
+def extract_price(page, url="", custom_regex=None, min_plausible=0, product_name=None):
     """Find the product price on a page. Returns (price, method) or (None, None)."""
     def ok(p):
         return p is not None and p >= min_plausible
@@ -227,9 +330,11 @@ def extract_price(page, url="", custom_regex=None, min_plausible=0):
             if m and ok(parse_price(m.group(1))):
                 return parse_price(m.group(1)), "amazon"
 
-    prices = [p for p in prices_from_json_ld(page) if ok(p)]
+    prices = [p for p in prices_from_json_ld(page, product_name) if ok(p)]
     if prices:
         return min(prices), "json-ld"
+    if product_name:
+        return None, None
 
     for pat in META_PATTERNS:
         vals = [v for v in (parse_price(x) for x in re.findall(pat, page, re.I)) if ok(v)]
@@ -291,8 +396,17 @@ def parse_feed(xml):
         if not merchant:
             mm = re.search(r"€\s*[-–@]\s*([A-Za-z0-9.\- ]{2,25})", desc[:250])
             merchant = mm.group(1).strip() if mm else ""
+        cmp_m = re.search(r"(?:Vergleichspreis|VGP|PVG|statt|UVP|sonst|regulär)[^0-9€]{0,40}?"
+                          r"(\d{1,3}(?:\.\d{3})*(?:,\d{1,2})?|\d+(?:,\d{1,2})?)\s*€", desc, re.I)
+        compare = parse_price(cmp_m.group(1)) if cmp_m else None
+        body = re.sub(r"^\s*[\d.,]+\s*€\s*-\s*[^ ]+\s*", "", desc).strip()   # drop "23,98€ - Amazon"
+        posted = ""
+        pm2 = re.search(r"<pubDate>[^<]*?(\d{1,2}) (\w{3}) \d{4} (\d{2}:\d{2})", it)
+        if pm2:
+            posted = f"{pm2.group(1)} {pm2.group(2)}, {pm2.group(3)}"
         items.append({"id": tag("guid") or link or title, "title": title, "link": link,
-                      "price": price, "merchant": merchant})
+                      "price": price, "merchant": merchant, "compare": compare,
+                      "text": body, "posted": posted, "category": tag("category")})
     return items
 
 
@@ -343,19 +457,25 @@ def _post(url, data, headers):
         r.read()
 
 
-def notify(ncfg, title, message, click_url=None, priority=4, tags=None):
-    """Send to ntfy / Telegram / Mac notification centre. Always prints too."""
+def notify(ncfg, title, message, click_url=None, priority=4, tags=None, buttons=None):
+    """Send to ntfy / Telegram / desktop. Always prints too.
+    buttons: [(label, url), ...] shown under the notification (max 3)."""
     print(f"\n🔔 {title}\n   {message}\n   {click_url or ''}\n")
     sent = False
+    buttons = [(l, u) for l, u in (buttons or []) if u] or (
+        [("Open deal", click_url)] if click_url else [])
 
     topic = os.environ.get("NTFY_TOPIC") or ncfg.get("ntfy_topic")
     if topic and "CHANGE-ME" not in topic:
         server = (os.environ.get("NTFY_SERVER") or ncfg.get("ntfy_server") or "https://ntfy.sh").rstrip("/")
         body = {"topic": topic, "title": title, "message": message,
-                "priority": priority, "tags": tags or ["moneybag"]}
+                "priority": priority}
+        if tags:
+            body["tags"] = tags
         if click_url:
             body["click"] = click_url
-            body["actions"] = [{"action": "view", "label": "Open deal", "url": click_url}]
+        if buttons:
+            body["actions"] = [{"action": "view", "label": l[:40], "url": u} for l, u in buttons[:3]]
         try:
             _post(server, json.dumps(body).encode(), {"Content-Type": "application/json"})
             sent = True
@@ -436,7 +556,8 @@ def decide_alerts(entry, price, prev, settings):
         return []
 
     if on_drop and ref is not None and price <= ref - min_drop:
-        word = "new lowest price" if compare_to == "lowest" else "price drop"
+        new_low = lowest is None or price < lowest
+        word = "lowest price so far" if new_low else "price drop"
         msg = f"{eur(ref)} → {eur(price)} (−{eur(ref - price)}) · {word}"
         if target is not None:
             msg += f" · target {eur(target)}"
@@ -468,7 +589,7 @@ def record_failure(prev, err, ncfg, fail_limit, name, url, dry_run):
                  if "(Amazon)" in name else " The other watches keep running.")
         notify(ncfg, f"⚠️ Can't read: {name}",
                f"{fail_limit} checks failed in a row: {err}.{extra}",
-               url, priority=3, tags=["warning"])
+               url, priority=3)
     return prev
 
 
@@ -479,23 +600,68 @@ def record_failure(prev, err, ncfg, fail_limit, name, url, dry_run):
 def check_product(entry, prev, settings, ncfg, dry_run, now):
     url, name = entry["url"], entry["name"]
     fail_limit = int(settings.get("warn_after_failures", 3))
+    lo = float(entry.get("min_plausible_price", 0))
     try:
         page = fetch(url)
-        price, method = extract_price(page, url, entry.get("price_regex"),
-                                      float(entry.get("min_plausible_price", 0)))
+        offers = []
+        if "geizhals." in url:
+            skip = [s.lower() for s in entry.get("skip_shops", settings.get("skip_shops", []))]
+            offers = [o for o in parse_geizhals_offers(page) if o["price"] >= lo
+                      and not any(s in shop_label(o).lower() for s in skip)]
+        if offers:
+            price, method = offers[0]["price"], "offers"
+        else:
+            price, method = extract_price(page, url, entry.get("price_regex"), lo,
+                                          entry.get("product_name"))
         if price is None:
             raise FetchError("page loaded but no price found")
     except FetchError as e:
         return record_failure(prev, e, ncfg, fail_limit, name, url, dry_run)
 
+    best = offers[0] if offers else None
+    store = official_store_info(page, url)
+    amazon = next((o for o in offers if "amazon" in o["shop"].lower() and not o["via"]), None)
+    shop = f" @ {shop_label(best)}" if best else ""
     last, low = prev.get("last_price"), prev.get("lowest_price")
     info = "" if last is None else f"  (last {eur(last)}, lowest {eur(low)})"
-    print(f"  ✓ {name}: {eur(price)}{info}  [{method}]")
+    amz = f" · Amazon {eur(amazon['price'])}" if amazon and amazon is not best else ""
+    if store["shop"]:
+        shop = f" @ {store['shop']}"
+        if store["saving"]:
+            shop += f" (normally {eur(store['regular'])}, −{eur(store['saving'])})"
+    print(f"  ✓ {name}: {eur(price)}{shop}{amz}{info}  [{method}]")
     if dry_run:
         return prev
     for title, msg, prio in decide_alerts(entry, price, prev, settings):
-        notify(ncfg, title, msg, url, priority=prio)
-    return record_price(prev, name, price, now)
+        if best:
+            title += f" @ {best['shop']}"
+            msg += "\n\n" + offer_details(best, geizhals_product_name(page))
+            others = [o for o in offers[1:] if not o["via"]][:3]   # next big shops
+            if amazon and amazon is not best and amazon not in others:
+                others = [amazon] + others[:2]
+            if others:
+                msg += "\n\n📋 Other shops: " + " · ".join(
+                    f"{o['shop']} {eur(o['price'])}" for o in others)
+        if store["shop"]:
+            title += f" @ {store['shop']}"
+            lines = [f"📦 Product: {entry.get('product_name') or name} (new, sold by {store['shop']})"]
+            p = f"💶 Price: {eur(price)}"
+            if store["saving"]:
+                p += f" (normally {eur(store['regular'])}, you save {eur(store['saving'])})"
+            lines.append(p)
+            if entry.get("note"):
+                lines.append(f"ℹ️ {entry['note']}")
+            msg += "\n\n" + "\n".join(lines)
+        buttons = [(f"Buy at {best['shop']}", best["link"])] if best else []
+        if store["shop"]:
+            buttons = [(f"Open {store['shop']}", url)]
+        if amazon and amazon is not best:
+            buttons.append(("Amazon", amazon["link"]))
+        if not store["shop"]:
+            buttons.append(("All shops", url))
+        notify(ncfg, title, msg, url, priority=prio, buttons=buttons)
+    return record_price(prev, name, price, now,
+                        {"best_shop": shop_label(best) if best else None})
 
 
 def check_amazon_search(entry, prev, settings, ncfg, dry_run, now):
@@ -529,6 +695,56 @@ def check_amazon_search(entry, prev, settings, ncfg, dry_run, now):
     return record_price(prev, name, price, now, {"best_title": title, "best_link": link})
 
 
+def deal_details(it):
+    """Multi-line description of a mydealz deal, for the notification."""
+    lines = [f"📦 {it['title']}"]
+    if it.get("merchant"):
+        lines.append(f"🏪 Shop: {it['merchant']}")
+    if it.get("price"):
+        p = f"💶 Price: {eur(it['price'])}"
+        c = it.get("compare")
+        if c and c > it["price"]:
+            p += f" (normally ~{eur(c)}, −{round(100 * (1 - it['price'] / c))}%)"
+        lines.append(p)
+    if it.get("posted"):
+        lines.append(f"🕒 Posted: {it['posted']}")
+    if it.get("text"):
+        t = it["text"]
+        lines.append(f"📝 {t[:280]}{'…' if len(t) > 280 else ''}")
+    return "\n".join(lines)
+
+
+def deal_buttons(it):
+    """Open the deal, plus a direct search for the product at the shop."""
+    q = urllib.parse.quote_plus(it["title"][:100])
+    shop = (it.get("merchant") or "").lower()
+    if "amazon" in shop:
+        search = ("Search on Amazon", f"https://www.amazon.de/s?k={q}")
+    elif "mediamarkt" in shop:
+        search = ("Search on MediaMarkt", f"https://www.mediamarkt.de/de/search.html?query={q}")
+    elif "saturn" in shop:
+        search = ("Search on Saturn", f"https://www.saturn.de/de/search.html?query={q}")
+    elif "otto" in shop:
+        search = ("Search on Otto", f"https://www.otto.de/suche/{urllib.parse.quote(it['title'][:100])}")
+    else:
+        search = ("Search on Google", "https://www.google.com/search?q="
+                  + urllib.parse.quote_plus(f"{it.get('merchant', '')} {it['title'][:100]}".strip()))
+    compare = ("Compare prices", f"https://geizhals.de/?fs={q}")
+    return [("Open deal", it["link"]), search, compare]
+
+
+def merchant_ok(merchant, allowed):
+    """True if the deal's shop is one of the allowed shops (whole words, any case)."""
+    m = (merchant or "").lower().replace("-", " ")
+    if not m:
+        return False
+    for a in allowed:
+        a = a.lower().replace("-", " ").strip()
+        if a and re.search(rf"(?<![a-z0-9]){re.escape(a)}(?![a-z0-9])", m):
+            return True
+    return False
+
+
 def check_feed(feed, prev, settings, ncfg, dry_run, now):
     name = feed.get("name", "mydealz")
     fail_limit = int(settings.get("warn_after_failures", 3))
@@ -560,17 +776,21 @@ def check_feed(feed, prev, settings, ncfg, dry_run, now):
                 continue
             if w.get("min_price") and it["price"] and it["price"] < w["min_price"]:
                 continue   # skips accessories, games and contract deals with tiny upfront prices
-            if w.get("only_merchants") and not any(
-                    m.lower() in (it["merchant"] + " " + it["title"]).lower()
-                    for m in w["only_merchants"]):
+            shops = w.get("only_merchants")
+            if shops == "trusted":
+                shops = settings.get("trusted_shops", [])
+            elif shops == "brand":
+                shops = [b for term in w.get("include", []) for b in str(term).split("|")]
+            if shops and not merchant_ok(it["merchant"], shops):
                 continue
             price = eur(it["price"]) if it["price"] else "price n/a"
             shop = f" @ {it['merchant']}" if it["merchant"] else ""
             if first_run or dry_run:
                 print(f"     · [{w['name']}] {price}{shop}: {it['title'][:90]}")
             else:
-                notify(ncfg, f"🔥 {w['name']}: {price}{shop}", it["title"][:200],
-                       it["link"], priority=w.get("priority", 4), tags=["fire"])
+                notify(ncfg, f"🔥 {w['name']}: {price}{shop}", deal_details(it),
+                       it["link"], priority=w.get("priority", 4),
+                       buttons=deal_buttons(it))
             break
     if first_run and not dry_run:
         print("     (first run: these are saved as already seen, alerts start from the next new deal)")
@@ -613,7 +833,8 @@ def run_once(config, state, dry_run=False, force=False):
     jobs = []
     for e in config.get("products", []):
         if e.get("enabled", True):
-            jobs.append(("p:" + e.get("id", e["url"]), e, check_product,
+            key = e.get("id") or (e["url"] + ("#" + e["product_name"] if e.get("product_name") else ""))
+            jobs.append(("p:" + key, e, check_product,
                          e.get("every_minutes", settings.get("product_every_minutes", 30))))
     # Amazon blocks cloud servers (GitHub etc.), so skip its searches there.
     # Amazon prices still come in via geizhals and mydealz.
