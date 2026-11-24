@@ -392,7 +392,7 @@ def parse_feed(xml):
         mn = re.search(r'<pepper:merchant\b[^>]*\bname=["\']([^"\']+)["\']', it)
         price = parse_price(mp.group(1)) if mp else None
         price = price or first_euro_price(title) or first_euro_price(desc[:250])
-        merchant = mn.group(1) if mn else ""
+        merchant = htmllib.unescape(mn.group(1)).strip() if mn else ""
         if not merchant:
             mm = re.search(r"€\s*[-–@]\s*([A-Za-z0-9.\- ]{2,25})", desc[:250])
             merchant = mm.group(1).strip() if mm else ""
@@ -537,8 +537,70 @@ def desktop_notify(title, message):
 # Alert rules
 # --------------------------------------------------------------------------- #
 
+_QUEUE = []
+
+
+def queue_alert(ncfg, title, message, click_url=None, priority=4, buttons=None):
+    """Collect alerts during a run; flush_alerts() sends them together."""
+    _QUEUE.append({"title": title, "message": message, "url": click_url,
+                   "priority": priority, "buttons": buttons})
+
+
+def flush_alerts(ncfg, max_items=15):
+    """1 alert -> the full detailed notification. Several -> ONE list."""
+    items, _QUEUE[:] = list(_QUEUE), []
+    if not items:
+        return
+    if len(items) == 1:
+        a = items[0]
+        notify(ncfg, a["title"], a["message"], a["url"], priority=a["priority"], buttons=a["buttons"])
+        return
+    deals = [a for a in items if not a["title"].startswith("⚠️")]
+    warns = [a for a in items if a["title"].startswith("⚠️")]
+    lines = []
+    for n, a in enumerate(deals[:max_items], 1):
+        lines.append(f"{n}. {a['title']}")
+        if a.get("url"):
+            lines.append(f"   {a['url']}")
+    if len(deals) > max_items:
+        lines.append(f"…and {len(deals) - max_items} more")
+    if warns:
+        lines.append("")
+        lines += [a["title"] for a in warns]
+    if deals and warns:
+        title = f"🛍️ {len(deals)} deals / price drops (+ {len(warns)} warnings)"
+    elif deals:
+        title = f"🛍️ {len(deals)} new deals / price drops"
+    else:
+        title = f"⚠️ {len(warns)} watches can't be read right now"
+    buttons = [(f"Open {n}", a["url"]) for n, a in enumerate(deals[:3], 1) if a.get("url")]
+    notify(ncfg, title, "\n".join(lines)[:3800],
+           deals[0]["url"] if deals else None,
+           priority=max(a["priority"] for a in items), buttons=buttons)
+
+
 def decide_alerts(entry, price, prev, settings):
-    """Return [(title, message, priority)] for a new price reading."""
+    """Return [(title, message, priority)] for a new price reading.
+    Never alerts twice for the same (or a higher) price."""
+    told = prev.get("last_alert_price")
+    min_drop_ = float(entry.get("min_drop_eur", settings.get("min_drop_eur", 10)))
+    if told is not None and price > told - min_drop_:
+        return []
+    return _decide_alerts(entry, price, prev, settings)
+
+
+def next_alert_price(prev, price, alerted):
+    """Remember the last price we told you about. If the price later goes back up
+    by 3% or more (the deal ended), forget it, so a new drop alerts again."""
+    if alerted:
+        return price
+    told = prev.get("last_alert_price")
+    if told is not None and price >= told * 1.03:
+        return None
+    return told
+
+
+def _decide_alerts(entry, price, prev, settings):
     name = entry["name"]
     target = entry.get("target_price")
     on_drop = entry.get("alert_on_any_drop", settings.get("alert_on_any_drop", True))
@@ -568,6 +630,7 @@ def decide_alerts(entry, price, prev, settings):
 def record_price(prev, name, price, now, extra=None):
     out = {
         "name": name,
+        "last_alert_price": prev.get("last_alert_price"),
         "last_price": price,
         "lowest_price": min(price, prev.get("lowest_price") or price),
         "last_checked": now,
@@ -584,10 +647,11 @@ def record_failure(prev, err, ncfg, fail_limit, name, url, dry_run):
     if dry_run:
         return prev
     prev = dict(prev, failures=fails, last_error=str(err))
-    if fails == fail_limit:
+    if fails >= fail_limit and time.time() - prev.get("warned_at", 0) > 24 * 3600:
+        prev["warned_at"] = time.time()
         extra = (" Amazon prices still reach you via geizhals and mydealz."
                  if "(Amazon)" in name else " The other watches keep running.")
-        notify(ncfg, f"⚠️ Can't read: {name}",
+        queue_alert(ncfg, f"⚠️ Can't read: {name}",
                f"{fail_limit} checks failed in a row: {err}.{extra}",
                url, priority=3)
     return prev
@@ -632,7 +696,8 @@ def check_product(entry, prev, settings, ncfg, dry_run, now):
     print(f"  ✓ {name}: {eur(price)}{shop}{amz}{info}  [{method}]")
     if dry_run:
         return prev
-    for title, msg, prio in decide_alerts(entry, price, prev, settings):
+    alerts = decide_alerts(entry, price, prev, settings)
+    for title, msg, prio in alerts:
         if best:
             title += f" @ {best['shop']}"
             msg += "\n\n" + offer_details(best, geizhals_product_name(page))
@@ -659,9 +724,10 @@ def check_product(entry, prev, settings, ncfg, dry_run, now):
             buttons.append(("Amazon", amazon["link"]))
         if not store["shop"]:
             buttons.append(("All shops", url))
-        notify(ncfg, title, msg, url, priority=prio, buttons=buttons)
+        queue_alert(ncfg, title, msg, url, priority=prio, buttons=buttons)
     return record_price(prev, name, price, now,
-                        {"best_shop": shop_label(best) if best else None})
+                        {"best_shop": shop_label(best) if best else None,
+                         "last_alert_price": next_alert_price(prev, price, bool(alerts))})
 
 
 def check_amazon_search(entry, prev, settings, ncfg, dry_run, now):
@@ -690,9 +756,11 @@ def check_amazon_search(entry, prev, settings, ncfg, dry_run, now):
     print(f"  ✓ {name}: {eur(price)}{info}  [{len(hits)} matching] {title[:70]}")
     if dry_run:
         return prev
-    for t, msg, prio in decide_alerts(dict(entry, name=name), price, prev, settings):
-        notify(ncfg, t, f"{msg}\n{title[:120]}", link or url, priority=prio)
-    return record_price(prev, name, price, now, {"best_title": title, "best_link": link})
+    alerts = decide_alerts(dict(entry, name=name), price, prev, settings)
+    for t, msg, prio in alerts:
+        queue_alert(ncfg, t, f"{msg}\n{title[:120]}", link or url, priority=prio)
+    return record_price(prev, name, price, now, {"best_title": title, "best_link": link,
+                        "last_alert_price": next_alert_price(prev, price, bool(alerts))})
 
 
 def deal_details(it):
@@ -788,7 +856,7 @@ def check_feed(feed, prev, settings, ncfg, dry_run, now):
             if first_run or dry_run:
                 print(f"     · [{w['name']}] {price}{shop}: {it['title'][:90]}")
             else:
-                notify(ncfg, f"🔥 {w['name']}: {price}{shop}", deal_details(it),
+                queue_alert(ncfg, f"🔥 {w['name']}: {price}{shop}", deal_details(it),
                        it["link"], priority=w.get("priority", 4),
                        buttons=deal_buttons(it))
             break
@@ -860,6 +928,8 @@ def run_once(config, state, dry_run=False, force=False):
         state[key] = fn(entry, state.get(key, {}), settings, ncfg, dry_run, now)
         if not dry_run:
             state["_last_run"][key] = time.time()
+    if not dry_run:
+        flush_alerts(ncfg)
     return state
 
 

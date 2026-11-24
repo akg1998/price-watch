@@ -6,7 +6,6 @@
     "telegram_chat_id": "",
     "desktop_notification": true
   },
-
   "settings": {
     "compare_to": "last",
     "min_drop_eur": 1,
@@ -15,58 +14,217 @@
     "feed_every_minutes": 20,
     "warn_after_failures": 4,
     "trusted_shops": [
-      "Apple", "Google", "Samsung", "Sony", "PlayStation", "Microsoft", "Nintendo", "LG", "Dell",
-      "Lenovo", "HP", "ASUS", "Acer", "MSI", "Philips", "Bose", "JBL", "Dyson", "Xiaomi", "Anker",
-      "Garmin", "DJI", "Logitech", "Bosch", "Siemens", "Severin", "Klarstein",
-      "Amazon", "MediaMarkt", "Media Markt", "Saturn", "Otto", "Cyberport", "notebooksbilliger",
-      "Galaxus", "Alternate", "Mindfactory", "Expert", "Euronics", "Coolblue", "Conrad", "Proshop",
-      "Lidl", "Aldi", "Tchibo"
+      "Apple",
+      "Google",
+      "Samsung",
+      "Sony",
+      "PlayStation",
+      "Microsoft",
+      "Nintendo",
+      "LG",
+      "Dell",
+      "Lenovo",
+      "HP",
+      "ASUS",
+      "Acer",
+      "MSI",
+      "Philips",
+      "Bose",
+      "JBL",
+      "Dyson",
+      "Xiaomi",
+      "Anker",
+      "Garmin",
+      "DJI",
+      "Logitech",
+      "Bosch",
+      "Siemens",
+      "Severin",
+      "Klarstein",
+      "Amazon",
+      "MediaMarkt",
+      "Media Markt",
+      "Saturn",
+      "Otto",
+      "Cyberport",
+      "notebooksbilliger",
+      "Galaxus",
+      "Alternate",
+      "Mindfactory",
+      "Expert",
+      "Euronics",
+      "Coolblue",
+      "Conrad",
+      "Proshop",
+      "Lidl",
+      "Aldi",
+      "Tchibo"
     ]
   },
-
   "products": [
-    {"name": "iPhone 17",         "product_name": "iPhone 17",         "url": "https://www.apple.com/de/shop/buy-iphone/iphone-17",     "min_plausible_price": 500},
-    {"name": "iPhone 17e",        "product_name": "iPhone 17e",        "url": "https://www.apple.com/de/shop/buy-iphone/iphone-17e",    "min_plausible_price": 400},
-    {"name": "iPhone Air",        "product_name": "iPhone Air",        "url": "https://www.apple.com/de/shop/buy-iphone/iphone-air",    "min_plausible_price": 500},
-    {"name": "iPhone 18 Pro",     "product_name": "iPhone 18 Pro",     "url": "https://www.apple.com/de/shop/buy-iphone/iphone-18-pro", "min_plausible_price": 800},
-    {"name": "iPhone 18 Pro Max", "product_name": "iPhone 18 Pro Max", "url": "https://www.apple.com/de/shop/buy-iphone/iphone-18-pro", "min_plausible_price": 900},
-    {"name": "iPhone Duo",        "product_name": "iPhone Duo",        "url": "https://www.apple.com/de/shop/buy-iphone/iphone-duo",    "min_plausible_price": 1300},
-
-    {"name": "Pixel 11",              "url": "https://store.google.com/de/product/pixel_11?hl=de",          "min_plausible_price": 400},
-    {"name": "Pixel 11 Pro / Pro XL", "url": "https://store.google.com/de/product/pixel_11_pro?hl=de",      "min_plausible_price": 500,
-     "note": "Starting price of the Pixel 11 Pro. The Pro XL is on the same page."},
-    {"name": "Pixel 11 Pro Fold",     "url": "https://store.google.com/de/product/pixel_11_pro_fold?hl=de", "min_plausible_price": 900}
+    {
+      "name": "iPhone 17",
+      "product_name": "iPhone 17",
+      "url": "https://www.apple.com/de/shop/buy-iphone/iphone-17",
+      "min_plausible_price": 500
+    },
+    {
+      "name": "iPhone 17e",
+      "product_name": "iPhone 17e",
+      "url": "https://www.apple.com/de/shop/buy-iphone/iphone-17e",
+      "min_plausible_price": 400
+    },
+    {
+      "name": "iPhone Air",
+      "product_name": "iPhone Air",
+      "url": "https://www.apple.com/de/shop/buy-iphone/iphone-air",
+      "min_plausible_price": 500
+    },
+    {
+      "name": "iPhone 18 Pro",
+      "product_name": "iPhone 18 Pro",
+      "url": "https://www.apple.com/de/shop/buy-iphone/iphone-18-pro",
+      "min_plausible_price": 800
+    },
+    {
+      "name": "iPhone 18 Pro Max",
+      "product_name": "iPhone 18 Pro Max",
+      "url": "https://www.apple.com/de/shop/buy-iphone/iphone-18-pro",
+      "min_plausible_price": 900
+    },
+    {
+      "name": "iPhone Duo",
+      "product_name": "iPhone Duo",
+      "url": "https://www.apple.com/de/shop/buy-iphone/iphone-duo",
+      "min_plausible_price": 1300
+    },
+    {
+      "name": "Pixel 11",
+      "url": "https://store.google.com/de/product/pixel_11?hl=de",
+      "min_plausible_price": 400
+    },
+    {
+      "name": "Pixel 11 Pro / Pro XL",
+      "url": "https://store.google.com/de/product/pixel_11_pro?hl=de",
+      "min_plausible_price": 500,
+      "note": "Starting price of the Pixel 11 Pro. The Pro XL is on the same page."
+    },
+    {
+      "name": "Pixel 11 Pro Fold",
+      "url": "https://store.google.com/de/product/pixel_11_pro_fold?hl=de",
+      "min_plausible_price": 900
+    }
   ],
-
   "deal_feeds": [
     {
       "name": "mydealz new deals",
-      "urls": ["https://www.mydealz.de/rss/new", "https://www.mydealz.de/rss/alle"],
+      "urls": [
+        "https://www.mydealz.de/rss/new",
+        "https://www.mydealz.de/rss/alle"
+      ],
       "exclude": [
-        "hülle", "case", "cover", "panzerglas", "schutzfolie", "displayschutz", "ladegerät", "kabel",
-        "halterung", "monitorarm", "vertrag", "tarif", "allnet", "gigakombi", "magentamobil",
-        "o2 mobile", "o2 blue", "congstar", "klarmobil", "freenet", "mtl", "monatlich", "/monat",
-        "generalüberholt", "refurbished", "gebraucht", "b-ware", "bware", "retoure", "wie neu",
-        "renewed", "vorführ", "outlet-ware"
+        "hülle",
+        "case",
+        "cover",
+        "panzerglas",
+        "schutzfolie",
+        "displayschutz",
+        "ladegerät",
+        "kabel",
+        "halterung",
+        "monitorarm",
+        "vertrag",
+        "tarif",
+        "allnet",
+        "gigakombi",
+        "magentamobil",
+        "o2 mobile",
+        "o2 blue",
+        "congstar",
+        "klarmobil",
+        "freenet",
+        "mtl",
+        "monatlich",
+        "/monat",
+        "generalüberholt",
+        "refurbished",
+        "gebraucht",
+        "b-ware",
+        "bware",
+        "retoure",
+        "wie neu",
+        "renewed",
+        "vorführ",
+        "outlet-ware"
       ],
       "watches": [
-        {"name": "Curved monitor", "include": ["curved|gebogen|gewölbt|ultrawide|uwqhd|3440x1440|5120x1440|odyssey g"], "exclude": ["fernseher"], "min_price": 80, "only_merchants": "trusted"},
-        {"name": "Mini fridge",    "include": ["minikühlschrank|kühlschrank mini|kühlschrankmini|minibar|mini fridge|tischkühlschrank|getränkekühlschrank|flaschenkühlschrank|kleiner kühlschrank|mini kühl"], "min_price": 20, "only_merchants": "trusted"},
-        {"name": "PS5 Digital",    "include": ["ps5|playstation 5|playstation5", "digital"], "exclude": ["ps5 pro", "playstation 5 pro", "code", "psn", "guthaben"], "min_price": 250, "only_merchants": "trusted"},
-        {"name": "iPhone (Apple Store)", "include": ["iphone 17|iphone air|iphone 18|iphone duo"], "min_price": 300, "only_merchants": ["Apple"]},
-        {"name": "Pixel (Google Store)", "include": ["pixel 11|pixel 10|pixel watch|pixel buds|pixel tablet"], "min_price": 50, "only_merchants": ["Google"]},
-        {"name": "Branded clothes", "include": ["nike|adidas|puma|levi's|levis|tommy hilfiger|calvin klein|hugo boss|boss|lacoste|ralph lauren|the north face|new balance|asics|under armour|jack wolfskin|columbia|superdry|converse|vans|reebok|skechers|timberland|g-star|diesel|armani|hollister|abercrombie|gant|napapijri|carhartt|marc o'polo|s.oliver|jack & jones"], "min_price": 10, "only_merchants": "brand"}
-      ]
-    },
-    {
-      "name": "mydealz hot deals",
-      "urls": ["https://www.mydealz.de/rss/hot"],
-      "exclude": [
-        "hülle", "case", "cover", "panzerglas", "schutzfolie", "vertrag", "tarif", "allnet",
-        "generalüberholt", "refurbished", "gebraucht", "b-ware", "bware", "retoure", "wie neu", "renewed"
-      ],
-      "watches": [
-        {"name": "Top gadget deal", "include": ["airpods|apple watch|ipad|macbook|imac|mac mini|galaxy watch|galaxy tab|galaxy buds|galaxy s2|galaxy z|pixel watch|pixel buds|pixel tablet|wh-1000|wf-1000|bose|sonos|kindle|steam deck|switch 2|meta quest|gopro|dji|garmin|oura|soundcore|roborock|ecovacs|dreame|dyson|jbl|marshall|beats|logitech mx|xbox series|playstation portal|dualsense|nothing phone|oneplus|ninja|philips hue|ring video|echo show|fire tv|chromecast|nvidia shield|rtx 50|oled"], "min_price": 20, "only_merchants": "trusted"}
+        {
+          "name": "Curved monitor",
+          "include": [
+            "curved|gebogen|gewölbt|ultrawide|uwqhd|3440x1440|5120x1440|odyssey g"
+          ],
+          "exclude": [
+            "fernseher"
+          ],
+          "min_price": 80,
+          "only_merchants": "trusted"
+        },
+        {
+          "name": "Mini fridge",
+          "include": [
+            "minikühlschrank|kühlschrank mini|kühlschrankmini|minibar|mini fridge|tischkühlschrank|getränkekühlschrank|flaschenkühlschrank|kleiner kühlschrank|mini kühl"
+          ],
+          "min_price": 20,
+          "only_merchants": "trusted"
+        },
+        {
+          "name": "PS5 Digital",
+          "include": [
+            "ps5|playstation 5|playstation5",
+            "digital"
+          ],
+          "exclude": [
+            "ps5 pro",
+            "playstation 5 pro",
+            "code",
+            "psn",
+            "guthaben"
+          ],
+          "min_price": 250,
+          "only_merchants": "trusted"
+        },
+        {
+          "name": "iPhone (Apple Store)",
+          "include": [
+            "iphone 17|iphone air|iphone 18|iphone duo"
+          ],
+          "min_price": 300,
+          "only_merchants": [
+            "Apple"
+          ]
+        },
+        {
+          "name": "Pixel (Google Store)",
+          "include": [
+            "pixel 11"
+          ],
+          "min_price": 50,
+          "only_merchants": [
+            "Google"
+          ]
+        },
+        {
+          "name": "Clothes (Zara, H&M, Mango, New Yorker)",
+          "include": [],
+          "min_price": 1,
+          "only_merchants": [
+            "Zara",
+            "H&M",
+            "Mango",
+            "Mango Outlet",
+            "New Yorker"
+          ]
+        }
       ]
     }
   ]
