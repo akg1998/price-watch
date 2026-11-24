@@ -10,8 +10,8 @@
     "compare_to": "last",
     "min_drop_eur": 1,
     "alert_on_any_drop": true,
-    "product_every_minutes": 10,
-    "feed_every_minutes": 10,
+    "product_every_minutes": 20,
+    "feed_every_minutes": 20,
     "warn_after_failures": 4,
     "trusted_shops": [
       "Apple",
@@ -223,6 +223,40 @@
             "Mango",
             "Mango Outlet",
             "New Yorker"
+          ]
+        },
+        {
+          "name": "Shoe brands",
+          "include": [],
+          "min_price": 1,
+          "only_merchants": [
+            "Nike",
+            "adidas",
+            "Puma",
+            "New Balance",
+            "ASICS",
+            "Reebok",
+            "Converse",
+            "Vans",
+            "Skechers",
+            "Under Armour",
+            "Salomon",
+            "HOKA",
+            "On",
+            "On Running",
+            "Saucony",
+            "Brooks",
+            "Mizuno",
+            "Timberland",
+            "Dr. Martens",
+            "Birkenstock",
+            "Crocs",
+            "Fila",
+            "Veja",
+            "ECCO",
+            "Clarks",
+            "Lacoste",
+            "Jordan"
           ]
         }
       ]
